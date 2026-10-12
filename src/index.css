@@ -1,0 +1,136 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Be Vietnam Pro', 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+}
+
+/* ========================================================
+   TOÀN BỘ KẾ HOẠCH BÀI DẠY (KHBD): 
+   FONT TIMES NEW ROMAN - CỠ CHỮ 13 (13pt) THEO CHUẨN CV 5512
+   ======================================================== */
+.khbd-document,
+#lessonPlanDocument,
+.khbd-preview-paper {
+  font-family: 'Times New Roman', Times, 'Tinos', 'Liberation Serif', serif !important;
+  font-size: 13pt !important;
+  line-height: 1.45 !important;
+  color: #0f172a !important;
+}
+
+.khbd-document *,
+#lessonPlanDocument *:not(i),
+.khbd-preview-paper *:not(i) {
+  font-family: 'Times New Roman', Times, 'Tinos', 'Liberation Serif', serif !important;
+}
+
+/* Thiết lập triệt để cỡ chữ 13pt cho toàn bộ nội dung văn bản KHBD */
+#lessonPlanDocument p,
+#lessonPlanDocument li,
+#lessonPlanDocument td,
+#lessonPlanDocument th,
+#lessonPlanDocument span:not(.khbd-tag):not(.khbd-badge),
+#lessonPlanDocument input,
+#lessonPlanDocument label,
+.khbd-preview-paper p,
+.khbd-preview-paper li,
+.khbd-preview-paper td,
+.khbd-preview-paper th,
+.khbd-preview-paper span:not(.khbd-tag) {
+  font-size: 13pt !important;
+  line-height: 1.45 !important;
+}
+
+/* Tiêu đề cấp mục trong KHBD: Times New Roman, Đậm, cỡ chữ 13pt - 14pt */
+#lessonPlanDocument h1,
+.khbd-preview-paper h1 {
+  font-size: 15pt !important;
+  font-weight: 800 !important;
+}
+
+#lessonPlanDocument h2,
+.khbd-preview-paper h2 {
+  font-size: 13.5pt !important;
+  font-weight: 800 !important;
+}
+
+#lessonPlanDocument h3,
+#lessonPlanDocument h4,
+.khbd-preview-paper h3,
+.khbd-preview-paper h4 {
+  font-size: 13pt !important;
+  font-weight: 700 !important;
+}
+
+/* Các trường input nhập từ bàn phím bên trong KHBD */
+#lessonPlanDocument input {
+  font-family: 'Times New Roman', Times, 'Tinos', 'Liberation Serif', serif !important;
+  font-size: 13pt !important;
+}
+
+@media print {
+  .no-print, header, nav, #control-bar, button, select, input[type="file"], .tab-navigation {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  body, html {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-family: 'Times New Roman', Times, 'Tinos', 'Liberation Serif', serif !important;
+    font-size: 13pt !important;
+    line-height: 1.4 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  #lessonPlanDocument,
+  #lessonPlanDocument *,
+  .khbd-document,
+  .khbd-document * {
+    font-family: 'Times New Roman', Times, 'Tinos', 'Liberation Serif', serif !important;
+    font-size: 13pt !important;
+    color: #000000 !important;
+    background: transparent !important;
+  }
+  #lessonPlanDocument h1 {
+    font-size: 15pt !important;
+  }
+  #lessonPlanDocument h2 {
+    font-size: 13.5pt !important;
+  }
+  #lessonPlanDocument h3,
+  #lessonPlanDocument h4 {
+    font-size: 13pt !important;
+  }
+  .print-card {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    page-break-inside: auto;
+  }
+  @page {
+    size: A4 portrait;
+    margin: 20mm 15mm 20mm 20mm;
+  }
+}
+
+/* Custom scrollbar for modern sleek UI */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
