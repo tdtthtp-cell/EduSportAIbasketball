@@ -1,0 +1,8 @@
+{
+  "name": "Remix EduSportAIvolleyball \u0026 Sức Khỏe Học Đường",
+  "description": "Ứng dụng hỗ trợ Giáo viên Giáo dục Thể chất và Học sinh THPT Huỳnh Tấn Phát: Soạn KHBD chuẩn CV 5512/7991 tích hợp AI, Phác đồ bài tập theo thể trạng BMI, Đánh giá thường xuyên TT22, Dinh dưỡng học đường Bến Tre và Cổng phụ huynh.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
