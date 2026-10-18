@@ -101,44 +101,42 @@ Mã nguồn sau khi đóng gói sẽ nằm trong thư mục `dist/`.
 
 ---
 
-## 🚀 5. Hướng dẫn đẩy toàn bộ code lên GitHub
+## 🚀 5. Hướng dẫn đẩy toàn bộ code lên GitHub (tdtthtp-cell/basketball)
 
-Nếu bạn muốn đưa mã nguồn này lên một kho lưu trữ GitHub mới của cá nhân hoặc trường:
+Mã nguồn đã được tối ưu hóa đường dẫn tương đối (`base: './'`) để hoạt động hoàn hảo trên GitHub Pages tại repository:
+👉 **[https://github.com/tdtthtp-cell/basketball](https://github.com/tdtthtp-cell/basketball)**
 
-### Bước 1: Tạo một Repository mới trên GitHub
-1. Truy cập [https://github.com/new](https://github.com/new).
-2. Đặt tên kho lưu trữ (ví dụ: `EduSportAI-Basketball` hoặc `EduSportAI-THPTHuynhTanPhat`).
-3. Chọn chế độ **Public** hoặc **Private** theo nhu cầu.
-4. **Không** tích chọn *"Add a README file"*, *"Add .gitignore"* vì dự án đã có sẵn đầy đủ.
-5. Bấm **Create repository**.
-
-### Bước 2: Liên kết và đẩy code từ máy cục bộ lên GitHub
-Mở Terminal tại thư mục gốc của dự án và chạy các lệnh sau:
+### Các bước liên kết và đẩy code lên:
+Mở Terminal tại thư mục dự án và chạy các lệnh sau:
 
 ```bash
 # 1. Đảm bảo nhánh chính tên là main
 git branch -M main
 
-# 2. Thêm đường dẫn remote tới GitHub của bạn (thay username và repo tương ứng)
-git remote add origin https://github.com/<YOUR_GITHUB_USERNAME>/<YOUR_REPOSITORY_NAME>.git
+# 2. Thêm hoặc cập nhật remote origin trỏ về repo tdtthtp-cell/basketball
+git remote remove origin 2>/dev/null || true
+git remote add origin https://github.com/tdtthtp-cell/basketball.git
 
 # 3. Kiểm tra remote đã được cấu hình chính xác
 git remote -v
 
 # 4. Đẩy toàn bộ mã nguồn lên GitHub
-git push -u origin main
+git push -u origin main --force
 ```
 
-*(Lưu ý: Nếu GitHub yêu cầu đăng nhập, hãy sử dụng GitHub Personal Access Token hoặc SSH Key).*
+*(Lưu ý: Nếu GitHub yêu cầu đăng nhập qua terminal, sử dụng GitHub Personal Access Token (PAT) với quyền `repo` và `workflow`).*
 
 ---
 
-## 🌐 6. Triển khai tự động lên GitHub Pages
+## 🌐 6. Kích hoạt Web App trên GitHub Pages (tdtthtp-cell.github.io/basketball)
 
-Dự án đã tích hợp sẵn GitHub Actions workflow tại `.github/workflows/static.yml`:
-1. Trên giao diện GitHub của repository, vào **Settings** > **Pages**.
-2. Tại mục **Build and deployment** > **Source**, chọn **GitHub Actions**.
-3. Mỗi khi bạn `git push` lên nhánh `main`, GitHub Actions sẽ tự động cài đặt dependencies, chạy `npm run build` và xuất bản website trực tiếp lên đường dẫn GitHub Pages!
+Sau khi code được đẩy lên `https://github.com/tdtthtp-cell/basketball`:
+1. Trên giao diện GitHub của repository, truy cập **Settings** > **Pages** (cột bên trái).
+2. Tại mục **Build and deployment**:
+   - **Source:** Chọn **GitHub Actions** (không chọn "Deploy from a branch").
+3. GitHub Actions workflow (`.github/workflows/static.yml`) sẽ tự động kích hoạt: cài đặt dependencies, chạy `npm run build` và xuất bản website trực tiếp tại:
+   🌐 **[https://tdtthtp-cell.github.io/basketball/](https://tdtthtp-cell.github.io/basketball/)**
+4. Mọi tài nguyên (JS, CSS, Font chữ, Sơ đồ bóng rổ, Danh sách 225 học sinh) đều tự động tải mượt mà không bị lỗi đường dẫn hay trắng trang.
 
 ---
 

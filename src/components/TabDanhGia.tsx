@@ -253,6 +253,65 @@ export const TabDanhGia: React.FC<TabDanhGiaProps> = ({
           </div>
         </div>
 
+        {/* THANH BỘ LỌC THEO LỚP HỌC (10A1, 10A3, 12C1, 12C2, 12C3) */}
+        <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2">
+              <span className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center text-xs font-black shrink-0">
+                <i className="fa-solid fa-filter"></i>
+              </span>
+              <div>
+                <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">
+                  Lọc Học Sinh Theo Lớp:
+                </span>
+                <span className="text-[11px] text-slate-500 block">
+                  {filterClass === 'all' 
+                    ? `Toàn bộ 5 lớp (${students.length} học sinh) • Nhấp vào từng lớp để theo dõi và vào điểm tập trung` 
+                    : `Đang quản lý lớp ${filterClass} (${students.filter(s => s.class === filterClass).length} học sinh)`}
+                </span>
+              </div>
+            </div>
+
+            {/* Nút lọc nhanh theo 5 lớp */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <button
+                onClick={() => setFilterClass('all')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                  filterClass === 'all'
+                    ? 'bg-emerald-800 text-white shadow-xs'
+                    : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-300'
+                }`}
+              >
+                <i className="fa-solid fa-layer-group text-[10px]"></i>
+                <span>Tất cả ({students.length})</span>
+              </button>
+              {availableClasses.map((cls) => {
+                const count = students.filter(s => s.class === cls).length;
+                const isSelected = filterClass === cls;
+                return (
+                  <button
+                    key={cls}
+                    onClick={() => setFilterClass(cls)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                      isSelected
+                        ? 'bg-emerald-800 text-white shadow-xs'
+                        : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-300'
+                    }`}
+                  >
+                    <i className={`fa-solid fa-graduation-cap text-[10px] ${isSelected ? 'text-amber-300' : 'text-emerald-600'}`}></i>
+                    <span>Lớp {cls}</span>
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                      isSelected ? 'bg-emerald-950/50 text-emerald-100' : 'bg-slate-100 text-slate-600'
+                    }`}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
         {/* Thanh thống kê nhanh */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
           <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">

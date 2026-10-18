@@ -65,9 +65,10 @@ export const Header: React.FC<HeaderProps> = ({
             <span>Tiếng Việt</span>
           </div>
 
-          <div className="flex items-center gap-1.5 bg-emerald-900/60 border border-emerald-700/50 px-2.5 py-1.5 rounded-lg text-emerald-300">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span>Trực tuyến</span>
+          <div className="flex items-center gap-1.5 bg-emerald-900/80 border border-emerald-600/70 px-2.5 py-1.5 rounded-lg text-emerald-200 text-xs shadow-xs" title="Cơ sở dữ liệu đám mây Firebase Firestore đang hoạt động thời gian thực">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+            <i className="fa-solid fa-cloud text-amber-300 text-[11px]"></i>
+            <span className="font-semibold hidden xs:inline">Đám Mây Firestore</span>
           </div>
 
           <button
@@ -81,11 +82,11 @@ export const Header: React.FC<HeaderProps> = ({
 
           <button
             onClick={onSaveSession}
-            title="Lưu trữ phiên làm việc vào bộ nhớ thiết bị"
-            className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-600 px-3 py-1.5 rounded-lg text-slate-200 font-medium transition cursor-pointer"
+            title="Trung tâm sao lưu & đồng bộ hồ sơ giữa máy tính và điện thoại"
+            className="flex items-center gap-1.5 bg-emerald-800 hover:bg-emerald-700 border border-emerald-600 px-3 py-1.5 rounded-lg text-white font-semibold transition cursor-pointer shadow-xs"
           >
-            <i className="fa-solid fa-floppy-disk"></i>
-            <span>Sao lưu</span>
+            <i className="fa-solid fa-cloud-arrow-up text-amber-300"></i>
+            <span>Sao lưu & Đồng bộ</span>
           </button>
 
           <button

@@ -1,0 +1,32 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidStudent(data) {
+      return data.id is string && data.id.size() <= 128
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 100
+        && data.class is string && data.class.size() <= 20
+        && data.gender is string && (data.gender == 'Nam' || data.gender == 'Nữ')
+        && data.heightCm is number && data.heightCm > 0 && data.heightCm <= 250
+        && data.weightKg is number && data.weightKg > 0 && data.weightKg <= 200
+        && data.bmi is number
+        && data.status is string && (data.status == 'standard' || data.status == 'overweight' || data.status == 'underweight' || data.status == 'mild');
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Students collection for synchronization across teacher devices and mobile
+    match /students/{studentId} {
+      allow get, list: if true;
+      allow create, update: if isValidId(studentId) && isValidStudent(request.resource.data);
+      allow delete: if isValidId(studentId);
+    }
+  }
+}

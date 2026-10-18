@@ -13,8 +13,10 @@ import { TabBMI } from './components/TabBMI';
 import { TabDinhDuong } from './components/TabDinhDuong';
 import { TabPhuHuynh } from './components/TabPhuHuynh';
 import { StopwatchModal } from './components/StopwatchModal';
+import { SyncBackupModal } from './components/SyncBackupModal';
 import { INITIAL_STUDENTS } from './data/students';
 import { Role, SportKey, GradeLevel, StudentProfile } from './types';
+import { testConnection, subscribeStudentsFromCloud, syncAllStudentsToCloud } from './firebase';
 
 export default function App() {
   // Navigation tab state (default: tab-thetrang as in the prototype image)
@@ -71,6 +73,9 @@ export default function App() {
   // Stopwatch modal
   const [isTimerOpen, setIsTimerOpen] = useState<boolean>(false);
 
+  // Backup & Multi-Device Sync modal
+  const [isSyncModalOpen, setIsSyncModalOpen] = useState<boolean>(false);
+
   // Toast notification
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -90,6 +95,40 @@ export default function App() {
     localStorage.setItem('edusport_grade', currentGrade);
     localStorage.setItem('edusport_students', JSON.stringify(students));
   }, [userRole, selectedTeacher, customUserName, currentSport, currentGrade, students]);
+
+  // Lắng nghe và đồng bộ dữ liệu thời gian thực từ Firestore (Real-time Cloud Sync)
+  useEffect(() => {
+    testConnection();
+    const unsubscribe = subscribeStudentsFromCloud(
+      (cloudStudents) => {
+        if (cloudStudents && cloudStudents.length > 0) {
+          setStudents(cloudStudents);
+          localStorage.setItem('edusport_students', JSON.stringify(cloudStudents));
+        } else {
+          // Lần đầu khởi tạo: tự động đẩy danh sách 70 học sinh chuẩn lên Cloud Firestore
+          syncAllStudentsToCloud(INITIAL_STUDENTS).catch(() => {});
+        }
+      },
+      (err) => {
+        console.warn('Lưu ý kết nối Firestore:', err);
+      }
+    );
+
+    return () => {
+      if (typeof unsubscribe === 'function') {
+        unsubscribe();
+      }
+    };
+  }, []);
+
+  const handleUpdateStudents = (updated: StudentProfile[]) => {
+    setStudents(updated);
+    localStorage.setItem('edusport_students', JSON.stringify(updated));
+    // Tự động đẩy lên Đám Mây Firestore để mọi thiết bị (kể cả điện thoại tdc3htp.com) tự cập nhật
+    syncAllStudentsToCloud(updated).catch((err) => {
+      console.warn('Đồng bộ nền lên Firestore:', err);
+    });
+  };
 
   const handleRoleChange = (role: Role) => {
     setUserRole(role);
@@ -114,7 +153,7 @@ export default function App() {
   const handleSaveSession = () => {
     localStorage.setItem('edusport_students', JSON.stringify(students));
     localStorage.setItem('edusport_user_name', customUserName);
-    showToast('Đã sao lưu toàn bộ cấu hình giáo án, hồ sơ thể trạng học sinh và thông số sư phạm thành công!');
+    setIsSyncModalOpen(true);
   };
 
   const handleSelectForMessage = (student: StudentProfile) => {
@@ -264,19 +303,23 @@ export default function App() {
         {activeTab === 'tab-danhgia' && (
           <TabDanhGia
             students={students}
-            onUpdateStudents={(updated) => setStudents(updated)}
+            onUpdateStudents={handleUpdateStudents}
             onSelectForMessage={handleSelectForMessage}
           />
         )}
 
         {activeTab === 'tab-bmi' && (
           <TabBMI
+            students={students}
+            onUpdateStudents={handleUpdateStudents}
             onSwitchToTheTrang={() => setActiveTab('tab-thetrang')}
+            onSelectForMessage={handleSelectForMessage}
+            onShowToast={showToast}
           />
         )}
 
         {activeTab === 'tab-dinhduong' && (
-          <TabDinhDuong />
+          <TabDinhDuong students={students} />
         )}
 
         {activeTab === 'tab-phuhuynh' && (
@@ -312,6 +355,19 @@ export default function App() {
       <StopwatchModal
         isOpen={isTimerOpen}
         onClose={() => setIsTimerOpen(false)}
+      />
+
+      {/* MODAL SAO LƯU & ĐỒNG BỘ THIẾT BỊ (PC ⇄ ĐIỆN THOẠI) */}
+      <SyncBackupModal
+        isOpen={isSyncModalOpen}
+        onClose={() => setIsSyncModalOpen(false)}
+        students={students}
+        onUpdateStudents={handleUpdateStudents}
+        currentSport={currentSport}
+        currentGrade={currentGrade}
+        userRole={userRole}
+        customUserName={customUserName}
+        onShowToast={showToast}
       />
 
     </div>

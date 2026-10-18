@@ -1,7 +1,82 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { StudentProfile } from '../types';
+import { INITIAL_STUDENTS } from '../data/students';
 
-export const TabDinhDuong: React.FC = () => {
-  const [activeSubTab, setActiveSubTab] = useState<'tong-quan' | 'thuc-don' | 'so-cap-cuu'>('tong-quan');
+interface TabDinhDuongProps {
+  students?: StudentProfile[];
+}
+
+export const TabDinhDuong: React.FC<TabDinhDuongProps> = ({ students = INITIAL_STUDENTS }) => {
+  const [activeSubTab, setActiveSubTab] = useState<'tong-quan' | 'thuc-don' | 'khau-phan-lop' | 'so-cap-cuu'>('khau-phan-lop');
+  const [selectedClassFilter, setSelectedClassFilter] = useState<string>('all');
+  const [copiedStudentId, setCopiedStudentId] = useState<string | null>(null);
+  const [copiedClassSummary, setCopiedClassSummary] = useState<boolean>(false);
+
+  // Available classes dynamically extracted from real students data
+  const availableClasses = useMemo(() => {
+    return Array.from(new Set(students.map(s => s.class))).filter(Boolean).sort();
+  }, [students]);
+
+  // Filtered students according to class selection
+  const classFilteredStudents = useMemo(() => {
+    if (selectedClassFilter === 'all') return students;
+    return students.filter(s => s.class === selectedClassFilter);
+  }, [students, selectedClassFilter]);
+
+  // Nutritional breakdown for selected class
+  const classStats = useMemo(() => {
+    const total = classFilteredStudents.length;
+    const overweight = classFilteredStudents.filter(s => s.status === 'overweight').length;
+    const underweight = classFilteredStudents.filter(s => s.status === 'underweight').length;
+    const mild = classFilteredStudents.filter(s => s.status === 'mild').length;
+    const standard = classFilteredStudents.filter(s => s.status === 'standard').length;
+    const totalWaterLiters = Math.round(classFilteredStudents.reduce((acc, s) => acc + (s.weightKg * 0.04), 0) * 10) / 10;
+    const totalCoconutWaterLiters = Math.round(total * 0.25 * 10) / 10; // ~250ml per student
+    return { total, overweight, underweight, mild, standard, totalWaterLiters, totalCoconutWaterLiters };
+  }, [classFilteredStudents]);
+
+  const getNutritionalAdvice = (s: StudentProfile) => {
+    if (s.status === 'overweight') {
+      return `Giảm đường bột tinh chế; tuyệt đối hạn chế trà sữa, nước ngọt có gas. Tăng rau xanh Bến Tre (bầu, bí, rau ngót), ăn bưởi da xanh tráng miệng. Uống nước dừa xiêm nhạt không thêm đường.`;
+    }
+    if (s.status === 'underweight') {
+      return `Bổ sung năng lượng và đạm lành mạnh: 2 quả chuối xiêm chín sau giờ tập; thêm cá rô đồng, cá lóc kho tộ, trứng gà và đậu phộng rang. Uống thêm 1 ly sữa ấm vào buổi tối trước 21h.`;
+    }
+    if (s.status === 'mild') {
+      return `Giữ ấm cơ thể, kiêng uống nước đá lạnh buốt sau khi vận động ra mồ hôi. Uống nước dừa tươi ấm hoặc nước lọc nguội từng ngụm nhỏ. Bổ sung vitamin C từ cam sành để tăng sức đề kháng phế quản.`;
+    }
+    return `Duy trì khẩu phần cân đối: 2 chén cơm trắng/lứt, đạm từ cá sông/thịt nạc, canh rau củ thanh nhiệt. Bù khoáng tự nhiên 1 trái dừa xiêm sau các tiết học thể chất gắng sức.`;
+  };
+
+  const handleCopyStudentAdvice = (s: StudentProfile) => {
+    const text = `[TƯ VẤN DINH DƯỠNG THPT HUỲNH TẤN PHÁT]
+Kính gửi Phụ huynh em ${s.name} (Lớp ${s.class}):
+- Chiều cao: ${s.heightCm} cm • Cân nặng: ${s.weightKg} kg • BMI: ${s.bmi} (${s.status === 'overweight' ? 'Thừa cân' : s.status === 'underweight' ? 'Thiếu cân' : s.status === 'mild' ? 'Lưu ý bệnh nền nhẹ' : 'Đạt chuẩn'}).
+- Nhu cầu nước tối thiểu mỗi ngày: ${(s.weightKg * 0.04).toFixed(1)} Lít (bao gồm nước lọc và nước dừa bù khoáng).
+- Lời khuyên dinh dưỡng học đường: ${getNutritionalAdvice(s)}
+Trân trọng thông báo từ Giáo viên Giáo dục Thể chất!`;
+    navigator.clipboard.writeText(text);
+    setCopiedStudentId(s.id);
+    setTimeout(() => setCopiedStudentId(null), 2000);
+  };
+
+  const handleCopyClassAdvice = () => {
+    const classNameDisplay = selectedClassFilter === 'all' ? 'Toàn bộ các lớp' : `Lớp ${selectedClassFilter}`;
+    const text = `[BÁO CÁO NHU CẦU DINH DƯỠNG & BÙ KHOÁNG GDTC - TRƯỜNG THPT HUỲNH TẤN PHÁT]
+Đối tượng: ${classNameDisplay} (Sĩ số: ${classStats.total} học sinh)
+1. Thống kê thể trạng & Nhu cầu khẩu phần:
+- Thể lực đạt chuẩn: ${classStats.standard} học sinh.
+- Thừa cân cần giảm calo/nước ngọt: ${classStats.overweight} học sinh.
+- Thiếu cân cần bồi bổ đạm/chuối xiêm: ${classStats.underweight} học sinh.
+- Bệnh nền cần kiêng nước đá, bù nước ấm: ${classStats.mild} học sinh.
+2. Khuyến nghị bù nước sau giờ học Thể chất:
+- Tổng lượng nước dừa tươi Bến Tre bù khoáng cần thiết: ~${classStats.totalCoconutWaterLiters} Lít (mỗi học sinh ~250ml - 1 trái dừa xiêm).
+- Hạn chế tối đa việc học sinh uống nước ngọt có gas hoặc trà sữa trước cổng trường.
+Trân trọng!`;
+    navigator.clipboard.writeText(text);
+    setCopiedClassSummary(true);
+    setTimeout(() => setCopiedClassSummary(false), 2500);
+  };
 
   return (
     <div id="tab-dinhduong" className="tab-content block space-y-4">
@@ -20,7 +95,18 @@ export const TabDinhDuong: React.FC = () => {
           </div>
 
           {/* Sub tabs */}
-          <div className="flex items-center gap-1.5 text-xs">
+          <div className="flex items-center gap-1.5 text-xs flex-wrap">
+            <button
+              onClick={() => setActiveSubTab('khau-phan-lop')}
+              className={`px-3 py-1.5 rounded-lg font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                activeSubTab === 'khau-phan-lop'
+                  ? 'bg-orange-600 text-white shadow-xs'
+                  : 'bg-orange-50 hover:bg-orange-100 text-orange-800 border border-orange-200'
+              }`}
+            >
+              <i className="fa-solid fa-user-tag text-xs"></i>
+              <span>Khẩu Phần Theo Lớp ({classFilteredStudents.length})</span>
+            </button>
             <button
               onClick={() => setActiveSubTab('tong-quan')}
               className={`px-3 py-1.5 rounded-lg font-bold transition cursor-pointer ${
@@ -53,6 +139,203 @@ export const TabDinhDuong: React.FC = () => {
             </button>
           </div>
         </div>
+
+        {/* THANH BỘ LỌC THEO LỚP HỌC (10A1, 10A3, 12C1, 12C2, 12C3) */}
+        <div className="bg-orange-50/60 p-3.5 rounded-xl border border-orange-200/80">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <span className="w-8 h-8 rounded-lg bg-orange-600 text-white flex items-center justify-center text-sm font-black shrink-0 shadow-2xs">
+                <i className="fa-solid fa-utensils"></i>
+              </span>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">
+                    Lọc Dinh Dưỡng Theo Lớp Học:
+                  </span>
+                  <span className="bg-orange-200 text-orange-900 text-[10px] font-bold px-2 py-0.5 rounded">
+                    {selectedClassFilter === 'all' ? 'Toàn bộ 5 lớp' : `Lớp ${selectedClassFilter}`}
+                  </span>
+                </div>
+                <span className="text-[11px] text-slate-600 block">
+                  {selectedClassFilter === 'all'
+                    ? `Đang xem toàn trường (${students.length} học sinh) • Bấm vào từng lớp để theo dõi nhu cầu dinh dưỡng tập trung`
+                    : `Đang quản lý kế hoạch dinh dưỡng & bù nước cho lớp ${selectedClassFilter} (${classFilteredStudents.length} học sinh)`}
+                </span>
+              </div>
+            </div>
+
+            {/* Nút lọc nhanh theo 5 lớp */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <button
+                onClick={() => setSelectedClassFilter('all')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                  selectedClassFilter === 'all'
+                    ? 'bg-orange-700 text-white shadow-xs'
+                    : 'bg-white hover:bg-orange-100 text-slate-700 border border-orange-300'
+                }`}
+              >
+                <i className="fa-solid fa-layer-group text-[10px]"></i>
+                <span>Tất cả ({students.length})</span>
+              </button>
+              {availableClasses.map((cls) => {
+                const count = students.filter(s => s.class === cls).length;
+                const isSelected = selectedClassFilter === cls;
+                return (
+                  <button
+                    key={cls}
+                    onClick={() => setSelectedClassFilter(cls)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                      isSelected
+                        ? 'bg-orange-700 text-white shadow-xs'
+                        : 'bg-white hover:bg-orange-100 text-slate-700 border border-orange-300'
+                    }`}
+                  >
+                    <i className={`fa-solid fa-graduation-cap text-[10px] ${isSelected ? 'text-amber-200' : 'text-orange-600'}`}></i>
+                    <span>Lớp {cls}</span>
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                      isSelected ? 'bg-orange-900/60 text-orange-100' : 'bg-orange-100 text-orange-800'
+                    }`}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Thống kê nhanh nhu cầu dinh dưỡng của lớp đang chọn */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-3 pt-3 border-t border-orange-200/60 text-xs">
+            <div className="bg-white p-2.5 rounded-lg border border-orange-200 shadow-2xs">
+              <span className="text-slate-500 block text-[11px] font-medium">Sĩ số lớp:</span>
+              <span className="font-extrabold text-slate-900 text-sm">{classStats.total} học sinh</span>
+            </div>
+
+            <div className="bg-white p-2.5 rounded-lg border border-orange-200 shadow-2xs">
+              <span className="text-amber-700 block text-[11px] font-medium">Cần giảm calo/đường:</span>
+              <span className="font-extrabold text-amber-800 text-sm">{classStats.overweight} HS (Thừa cân)</span>
+            </div>
+
+            <div className="bg-white p-2.5 rounded-lg border border-orange-200 shadow-2xs">
+              <span className="text-blue-700 block text-[11px] font-medium">Cần tăng đạm & năng lượng:</span>
+              <span className="font-extrabold text-blue-800 text-sm">{classStats.underweight} HS (Thiếu cân)</span>
+            </div>
+
+            <div className="bg-white p-2.5 rounded-lg border border-orange-200 shadow-2xs">
+              <span className="text-emerald-700 block text-[11px] font-medium">Nước dừa tươi cần bù:</span>
+              <span className="font-extrabold text-emerald-800 text-sm">~{classStats.totalCoconutWaterLiters} Lít (Cả lớp)</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Tab 0: Khẩu phần và quản lý dinh dưỡng theo từng lớp học */}
+        {activeSubTab === 'khau-phan-lop' && (
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
+              <div>
+                <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                  <i className="fa-solid fa-list-check text-orange-600"></i>
+                  Danh Sách Khẩu Phần Dinh Dưỡng: {selectedClassFilter === 'all' ? 'Toàn Trường (5 Lớp)' : `Lớp ${selectedClassFilter}`} ({classFilteredStudents.length} học sinh)
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Phân bổ dinh dưỡng cá nhân hóa theo thể trạng BMI, cân nặng thực tế và nguồn thực phẩm Bến Tre.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleCopyClassAdvice}
+                  className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
+                >
+                  <i className={`fa-solid ${copiedClassSummary ? 'fa-check' : 'fa-copy'}`}></i>
+                  <span>{copiedClassSummary ? 'Đã sao chép báo cáo!' : 'Sao chép báo cáo lớp'}</span>
+                </button>
+                <button
+                  onClick={() => window.print()}
+                  className="bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer"
+                >
+                  <i className="fa-solid fa-print"></i>
+                  <span>In sổ dinh dưỡng</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Bảng danh sách học sinh theo lớp */}
+            <div className="overflow-x-auto border border-slate-200 rounded-xl shadow-2xs bg-white">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead className="bg-slate-100/90 text-slate-700 font-bold border-b border-slate-200 uppercase text-[11px] tracking-wider">
+                  <tr>
+                    <th className="py-2.5 px-3 w-12 text-center">STT</th>
+                    <th className="py-2.5 px-3 w-28">Mã HS / Lớp</th>
+                    <th className="py-2.5 px-3">Họ và tên</th>
+                    <th className="py-2.5 px-3 w-28 text-center">Thể trạng (BMI)</th>
+                    <th className="py-2.5 px-3 w-28 text-center">Nhu cầu nước/ngày</th>
+                    <th className="py-2.5 px-3">Khuyến nghị dinh dưỡng học đường</th>
+                    <th className="py-2.5 px-3 w-28 text-center no-print">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-slate-700">
+                  {classFilteredStudents.map((s, idx) => {
+                    const isCopied = copiedStudentId === s.id;
+                    const waterNeed = (s.weightKg * 0.04).toFixed(1);
+                    return (
+                      <tr key={s.id} className="hover:bg-orange-50/40 transition">
+                        <td className="py-2.5 px-3 text-center font-medium text-slate-500">{idx + 1}</td>
+                        <td className="py-2.5 px-3">
+                          <span className="font-bold text-slate-800 block">{s.code}</span>
+                          <span className="text-[11px] bg-slate-200/80 text-slate-700 px-1.5 py-0.2 rounded font-semibold">
+                            Lớp {s.class}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3">
+                          <span className="font-bold text-slate-900 block">{s.name}</span>
+                          <span className="text-[11px] text-slate-500">
+                            {s.gender} • {s.heightCm} cm • {s.weightKg} kg
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3 text-center">
+                          <span className={`font-bold px-2 py-0.5 rounded text-[11px] inline-block ${
+                            s.status === 'overweight' ? 'bg-amber-100 text-amber-800 border border-amber-300' :
+                            s.status === 'underweight' ? 'bg-blue-100 text-blue-800 border border-blue-300' :
+                            s.status === 'mild' ? 'bg-rose-100 text-rose-800 border border-rose-300' :
+                            'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                          }`}>
+                            BMI {s.bmi}
+                          </span>
+                          <span className="block text-[10px] text-slate-500 mt-0.5">
+                            {s.status === 'overweight' ? 'Thừa cân' :
+                             s.status === 'underweight' ? 'Thiếu cân' :
+                             s.status === 'mild' ? 'Bệnh nền nhẹ' : 'Đạt chuẩn'}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3 text-center">
+                          <span className="font-bold text-blue-700 text-xs block">{waterNeed} Lít</span>
+                          <span className="text-[10px] text-slate-500">Nước + Nước dừa</span>
+                        </td>
+                        <td className="py-2.5 px-3 text-slate-600 leading-relaxed text-[11px]">
+                          {getNutritionalAdvice(s)}
+                        </td>
+                        <td className="py-2.5 px-3 text-center no-print">
+                          <button
+                            onClick={() => handleCopyStudentAdvice(s)}
+                            title="Sao chép lời khuyên dinh dưỡng gửi phụ huynh qua Zalo"
+                            className={`px-2.5 py-1 rounded text-[11px] font-semibold transition cursor-pointer flex items-center justify-center gap-1 w-full ${
+                              isCopied 
+                                ? 'bg-emerald-700 text-white' 
+                                : 'bg-orange-50 hover:bg-orange-100 text-orange-800 border border-orange-200'
+                            }`}
+                          >
+                            <i className={`fa-solid ${isCopied ? 'fa-check' : 'fa-comment-dots'}`}></i>
+                            <span>{isCopied ? 'Đã chép' : 'Gửi Zalo'}</span>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {/* Tab 1: Tổng quan nguồn chất dinh dưỡng nông thôn */}
         {activeSubTab === 'tong-quan' && (

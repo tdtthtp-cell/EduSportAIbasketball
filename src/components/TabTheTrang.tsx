@@ -31,6 +31,20 @@ export const TabTheTrang: React.FC<TabTheTrangProps> = ({
   const currentStudent = students.find(s => s.id === selectedStudentId) || classFilteredStudents[0] || students[0];
   const sportObj = SPORTS_LIST.find(s => s.key === currentSport) || SPORTS_LIST[0];
 
+  const handleClassSelect = (cls: string) => {
+    setSelectedClassFilter(cls);
+    const filtered = cls === 'all' ? students : students.filter(s => s.class === cls);
+    if (filtered.length > 0) {
+      const sameStatus = filtered.find(s => s.status === activeFilter);
+      if (sameStatus) {
+        setSelectedStudentId(sameStatus.id);
+      } else {
+        setSelectedStudentId(filtered[0].id);
+        setActiveFilter(filtered[0].status);
+      }
+    }
+  };
+
   const handleStudentChange = (id: string) => {
     setSelectedStudentId(id);
     const st = students.find(s => s.id === id);
@@ -41,10 +55,13 @@ export const TabTheTrang: React.FC<TabTheTrangProps> = ({
 
   const handleFilterClick = (status: HealthStatus) => {
     setActiveFilter(status);
-    // Find the first student matching this filter if exists
-    const match = students.find(s => s.status === status);
+    // Find the first student matching this filter within the currently filtered class
+    const match = classFilteredStudents.find(s => s.status === status) || students.find(s => s.status === status);
     if (match) {
       setSelectedStudentId(match.id);
+      if (selectedClassFilter !== 'all' && match.class !== selectedClassFilter) {
+        setSelectedClassFilter('all');
+      }
     }
   };
 
@@ -161,6 +178,111 @@ ${getExerciseStepsText(activeFilter, sportObj.name)}`;
         </div>
       </div>
 
+      {/* THANH BỘ LỌC THEO LỚP HỌC (10A1, 10A3, 12C1, 12C2, 12C3) */}
+      <div className="bg-white rounded-xl p-3.5 border border-slate-200/90 shadow-2xs">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <span className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center text-sm font-black shrink-0">
+              <i className="fa-solid fa-users-rectangle"></i>
+            </span>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">
+                  Lọc Học Sinh Theo Lớp:
+                </span>
+                <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded">
+                  {selectedClassFilter === 'all' ? 'Toàn bộ 5 lớp' : `Lớp ${selectedClassFilter}`}
+                </span>
+              </div>
+              <span className="text-[11px] text-slate-500 block">
+                {selectedClassFilter === 'all' 
+                  ? `Đang hiển thị toàn trường (${students.length} học sinh) • Bấm vào từng lớp bên dưới để quản lý tập trung` 
+                  : `Đang quản lý tập trung danh sách lớp ${selectedClassFilter} (${classFilteredStudents.length} học sinh)`}
+              </span>
+            </div>
+          </div>
+
+          {/* Danh sách nút chọn 5 lớp */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <button
+              onClick={() => handleClassSelect('all')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                selectedClassFilter === 'all'
+                  ? 'bg-emerald-800 text-white shadow-xs'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'
+              }`}
+            >
+              <i className="fa-solid fa-layer-group text-[10px]"></i>
+              <span>Tất cả ({students.length})</span>
+            </button>
+            {availableClasses.map((cls) => {
+              const count = students.filter(s => s.class === cls).length;
+              const isSelected = selectedClassFilter === cls;
+              return (
+                <button
+                  key={cls}
+                  onClick={() => handleClassSelect(cls)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                    isSelected
+                      ? 'bg-emerald-800 text-white shadow-xs'
+                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'
+                  }`}
+                >
+                  <i className={`fa-solid fa-graduation-cap text-[10px] ${isSelected ? 'text-amber-300' : 'text-emerald-600'}`}></i>
+                  <span>Lớp {cls}</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                    isSelected ? 'bg-emerald-950/50 text-emerald-100' : 'bg-slate-200 text-slate-600'
+                  }`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Thống kê nhanh thể lực theo lớp đang chọn */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-3 pt-3 border-t border-slate-100 text-xs">
+          <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200 flex items-center justify-between">
+            <div>
+              <span className="text-slate-500 block text-[11px] font-medium">Sĩ số theo dõi:</span>
+              <span className="font-extrabold text-slate-800 text-sm">{classFilteredStudents.length} học sinh</span>
+            </div>
+            <i className="fa-solid fa-users text-slate-400 text-base"></i>
+          </div>
+
+          <div className="bg-amber-50 p-2.5 rounded-lg border border-amber-200 flex items-center justify-between">
+            <div>
+              <span className="text-amber-700 block text-[11px] font-medium">Thừa cân / Béo phì:</span>
+              <span className="font-extrabold text-amber-800 text-sm">
+                {classFilteredStudents.filter(s => s.status === 'overweight').length} HS
+              </span>
+            </div>
+            <i className="fa-solid fa-weight-scale text-amber-500 text-base"></i>
+          </div>
+
+          <div className="bg-blue-50 p-2.5 rounded-lg border border-blue-200 flex items-center justify-between">
+            <div>
+              <span className="text-blue-700 block text-[11px] font-medium">Thiếu cân / Yếu:</span>
+              <span className="font-extrabold text-blue-800 text-sm">
+                {classFilteredStudents.filter(s => s.status === 'underweight').length} HS
+              </span>
+            </div>
+            <i className="fa-solid fa-person text-blue-500 text-base"></i>
+          </div>
+
+          <div className="bg-rose-50 p-2.5 rounded-lg border border-rose-200 flex items-center justify-between">
+            <div>
+              <span className="text-rose-700 block text-[11px] font-medium">Lưu ý bệnh nền nhẹ:</span>
+              <span className="font-extrabold text-rose-800 text-sm">
+                {classFilteredStudents.filter(s => s.status === 'mild').length} HS
+              </span>
+            </div>
+            <i className="fa-solid fa-heart-pulse text-rose-500 text-base"></i>
+          </div>
+        </div>
+      </div>
+
       {/* Lưới 2 cột */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         
@@ -180,16 +302,7 @@ ${getExerciseStepsText(activeFilter, sportObj.name)}`;
                   </label>
                   <select
                     value={selectedClassFilter}
-                    onChange={(e) => {
-                      setSelectedClassFilter(e.target.value);
-                      const filtered = e.target.value === 'all' 
-                        ? students 
-                        : students.filter(s => s.class === e.target.value);
-                      if (filtered[0]) {
-                        setSelectedStudentId(filtered[0].id);
-                        setActiveFilter(filtered[0].status);
-                      }
-                    }}
+                    onChange={(e) => handleClassSelect(e.target.value)}
                     className="bg-slate-50 border border-slate-300 rounded px-2 py-1 font-bold text-slate-800 text-xs cursor-pointer"
                   >
                     <option value="all">Tất cả lớp ({students.length} HS)</option>
