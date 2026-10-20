@@ -1,6 +1,12 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { SportKey, GradeLevel, Role, StudentProfile } from '../types';
-import { LESSONS_DATABASE, SPORTS_LIST, FULL_PPCT_70_PERIODS, getPPCTForSport } from '../data/curriculum';
+import {
+  SPORTS_LIST,
+  getPPCTForSportAndGrade,
+  getLessonsForSportAndGrade,
+  getPPCTForSport,
+  LESSONS_DATABASE
+} from '../data/curriculum';
 import { LessonDiagrams } from './LessonDiagrams';
 import { generateStandardKHBD } from '../utils/lessonPlanGenerator';
 import { exportLessonPlanToWord } from '../utils/exportWord';
@@ -22,9 +28,7 @@ export const TabKHBD: React.FC<TabKHBDProps> = ({
 }) => {
   const [activeSubView, setActiveSubView] = useState<'khbd' | 'ppct'>('khbd');
   const [ppctSemesterFilter, setPpctSemesterFilter] = useState<'all' | 'HK1' | 'HK2'>('all');
-
-  const lessons = LESSONS_DATABASE[currentSport] || LESSONS_DATABASE['bong-ro'] || LESSONS_DATABASE['bong-chuyen'];
-  const [selectedLessonIndex, setSelectedLessonIndex] = useState<number>(0);
+  const [ppctSearchTerm, setPpctSearchTerm] = useState<string>('');
 
   // Form Controls - Inputs from keyboard as requested
   const [schoolName, setSchoolName] = useState<string>('THPT Huỳnh Tấn Phát');
@@ -35,6 +39,28 @@ export const TabKHBD: React.FC<TabKHBDProps> = ({
   const [teacherInput, setTeacherInput] = useState<string>(currentTeacherName || 'Bồ Công Lâm');
   const [ttcmName, setTtcmName] = useState<string>('Nguyễn Thị Hoa'); // TTCM: nhập từ bàn phím
   const [durationOption, setDurationOption] = useState<'1 tiết' | '2 tiết'>('1 tiết');
+
+  // Dynamically load all 70 periods/lessons according to chosen sport and grade
+  const lessons = useMemo(() => {
+    return getLessonsForSportAndGrade(currentSport, gradeSelect);
+  }, [currentSport, gradeSelect]);
+
+  const [selectedLessonIndex, setSelectedLessonIndex] = useState<number>(0);
+
+  // Sync gradeSelect when currentGrade prop changes
+  useEffect(() => {
+    if (currentGrade && currentGrade !== gradeSelect) {
+      setGradeSelect(currentGrade);
+      setClassNameInput(`${currentGrade}A1`);
+    }
+  }, [currentGrade]);
+
+  // Keep selectedLessonIndex within bounds when lessons change
+  useEffect(() => {
+    if (selectedLessonIndex >= lessons.length) {
+      setSelectedLessonIndex(0);
+    }
+  }, [lessons.length, selectedLessonIndex]);
 
   // Ngày tháng soạn giáo án (nhập trực tiếp từ bàn phím)
   const today = new Date();
@@ -204,10 +230,18 @@ ${detailedPlan.teacherName}`;
     }
   };
 
-  const sportPPCT = useMemo(() => getPPCTForSport(currentSport), [currentSport]);
+  const sportPPCT = useMemo(() => getPPCTForSportAndGrade(currentSport, gradeSelect), [currentSport, gradeSelect]);
 
   const filteredPPCT = sportPPCT.filter((r) => {
     if (ppctSemesterFilter !== 'all' && r.semester !== ppctSemesterFilter) return false;
+    if (ppctSearchTerm.trim()) {
+      const q = ppctSearchTerm.toLowerCase();
+      return (
+        r.lessonTitle.toLowerCase().includes(q) ||
+        r.theme.toLowerCase().includes(q) ||
+        String(r.period) === q
+      );
+    }
     return true;
   });
 
@@ -361,19 +395,42 @@ ${detailedPlan.teacherName}`;
 
                 {/* 2. Tên bài dạy (5 cột) */}
                 <div className="lg:col-span-5">
-                  <label className="block font-bold text-slate-800 mb-1 text-xs">
-                    Tên bài dạy (Theo PPCT môn học):
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block font-bold text-slate-800 text-xs">
+                      Tên bài dạy (Theo PPCT & SGK Khối {gradeSelect}):
+                    </label>
+                    <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                      {lessons.length} tiết chuẩn hóa
+                    </span>
+                  </div>
                   <select
                     value={selectedLessonIndex}
-                    onChange={(e) => setSelectedLessonIndex(Number(e.target.value))}
+                    onChange={(e) => {
+                      const idx = Number(e.target.value);
+                      setSelectedLessonIndex(idx);
+                      const l = lessons[idx];
+                      if (l) {
+                        setSgkInput(l.sgkRef || getDefaultSgkForGrade(gradeSelect));
+                      }
+                    }}
                     className="w-full bg-white border border-slate-300 rounded-lg p-2 font-bold text-emerald-900 cursor-pointer text-xs shadow-2xs"
                   >
-                    {lessons.map((l, idx) => (
-                      <option key={l.id} value={idx}>
-                        [Tiết {l.periodNumber}] {l.title}
-                      </option>
-                    ))}
+                    <optgroup label={`HỌC KỲ I (Tiết 1 - ${Math.min(35, lessons.length)})`}>
+                      {lessons.slice(0, 35).map((l, idx) => (
+                        <option key={l.id} value={idx}>
+                          [Tiết {l.periodNumber}] {l.title}
+                        </option>
+                      ))}
+                    </optgroup>
+                    {lessons.length > 35 && (
+                      <optgroup label={`HỌC KỲ II (Tiết 36 - ${lessons.length})`}>
+                        {lessons.slice(35).map((l, idx) => (
+                          <option key={l.id} value={35 + idx}>
+                            [Tiết {l.periodNumber}] {l.title}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
                   </select>
                 </div>
 
@@ -1052,34 +1109,88 @@ ${detailedPlan.teacherName}`;
         {activeSubView === 'ppct' && (
           <div className="space-y-4">
             
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-xs">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
               <div>
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                  <span className="bg-emerald-800 text-white font-bold px-2 py-0.5 rounded text-[11px]">
+                    {sportObj.name} • {sportObj.desc}
+                  </span>
+                  <span className="bg-amber-100 text-amber-900 border border-amber-300 font-bold px-2 py-0.5 rounded text-[11px]">
+                    Khối {gradeSelect} (Năm học 2026 - 2027)
+                  </span>
+                  <span className="text-slate-500 font-semibold text-[11px]">
+                    Hiển thị {filteredPPCT.length} / {sportPPCT.length} tiết
+                  </span>
+                </div>
                 <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
                   <i className="fa-solid fa-list-ol text-emerald-700"></i>
-                  Khung Phân Phối Chương Trình Môn GDTC THPT (70 Tiết • 45 Phút/Tiết)
+                  Khung Phân Phối Chương Trình Môn GDTC THPT (70 Tiết Chuẩn Hóa)
                 </h3>
-                <p className="text-slate-500 mt-0.5">
-                  Khung chuẩn GDPT 2018 Bộ Giáo dục & Đào tạo • 35 tuần x 2 tiết/tuần = 70 tiết chuẩn hóa • Địa điểm: {schoolLocation}
+                <p className="text-slate-500 mt-0.5 text-xs">
+                  Căn cứ Chương trình GDPT 2018 Bộ GD&ĐT • Khung phân phối chương trình chính thức THPT Huỳnh Tấn Phát • Địa điểm: {schoolLocation}
                 </p>
               </div>
 
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-semibold text-slate-700">Lọc theo học kỳ:</span>
+                {/* Chọn Khối lớp trong PPCT */}
+                <div className="flex items-center bg-white border border-slate-300 rounded-lg p-0.5 shadow-2xs">
+                  <span className="text-[11px] font-bold text-slate-500 px-2">Khối:</span>
+                  {(['10', '11', '12'] as GradeLevel[]).map((g) => (
+                    <button
+                      key={g}
+                      onClick={() => {
+                        setGradeSelect(g);
+                        setClassNameInput(`${g}A1`);
+                        setSgkInput(getDefaultSgkForGrade(g));
+                      }}
+                      className={`px-2.5 py-1 rounded text-xs font-bold transition cursor-pointer ${
+                        gradeSelect === g
+                          ? 'bg-emerald-800 text-white shadow-xs'
+                          : 'text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      K{g}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Tìm kiếm bài học */}
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={ppctSearchTerm}
+                    onChange={(e) => setPpctSearchTerm(e.target.value)}
+                    placeholder="Tìm tên bài, chủ đề, tiết số..."
+                    className="bg-white border border-slate-300 rounded-lg pl-7 pr-3 py-1.5 font-medium text-xs text-slate-800 shadow-2xs w-44 md:w-56 focus:ring-1 focus:ring-emerald-500"
+                  />
+                  <i className="fa-solid fa-search absolute left-2.5 top-2.5 text-slate-400 text-xs"></i>
+                  {ppctSearchTerm && (
+                    <button
+                      onClick={() => setPpctSearchTerm('')}
+                      className="absolute right-2 top-2 text-slate-400 hover:text-slate-600 text-xs cursor-pointer"
+                    >
+                      <i className="fa-solid fa-xmark"></i>
+                    </button>
+                  )}
+                </div>
+
+                {/* Lọc theo học kỳ */}
                 <select
                   value={ppctSemesterFilter}
                   onChange={(e) => setPpctSemesterFilter(e.target.value as any)}
-                  className="bg-white border border-slate-300 rounded-lg px-2.5 py-1 font-bold text-slate-800 cursor-pointer"
+                  className="bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 cursor-pointer shadow-2xs"
                 >
                   <option value="all">Tất cả 70 tiết (35 tuần)</option>
-                  <option value="HK1">Học kỳ I (Tiết 1 - 36 • 18 tuần)</option>
-                  <option value="HK2">Học kỳ II (Tiết 37 - 70 • 17 tuần)</option>
+                  <option value="HK1">Học kỳ I (Tiết 1 - 35)</option>
+                  <option value="HK2">Học kỳ II (Tiết 36 - 70)</option>
                 </select>
 
                 <button
                   onClick={() => window.print()}
-                  className="bg-slate-800 hover:bg-slate-700 text-white font-semibold px-3 py-1 rounded-lg transition cursor-pointer"
+                  className="bg-slate-800 hover:bg-slate-700 text-white font-semibold px-3 py-1.5 rounded-lg transition cursor-pointer shadow-xs flex items-center gap-1"
                 >
-                  <i className="fa-solid fa-print mr-1"></i> In Khung PPCT
+                  <i className="fa-solid fa-print"></i>
+                  <span>In PPCT</span>
                 </button>
               </div>
             </div>
@@ -1094,14 +1205,14 @@ ${detailedPlan.teacherName}`;
                     <th className="p-3 text-center">Học kỳ</th>
                     <th className="p-3">Chủ đề bài học</th>
                     <th className="p-3">Nội dung chi tiết (Thời lượng: 45 phút)</th>
-                    <th className="p-3">Trang SGK (Khối {gradeSelect})</th>
-                    <th className="p-3">Ghi chú sư phạm & AI</th>
+                    <th className="p-3">Căn cứ SGK</th>
+                    <th className="p-3">Ghi chú & Yêu cầu</th>
                     <th className="p-3 text-center no-print">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {filteredPPCT.map((row) => (
-                    <tr key={row.period} className="hover:bg-slate-50 transition">
+                    <tr key={`${row.grade}-${row.period}`} className="hover:bg-slate-50 transition">
                       <td className="p-3 text-center font-black text-emerald-800 whitespace-nowrap">
                         Tiết {row.period}
                       </td>
@@ -1122,7 +1233,7 @@ ${detailedPlan.teacherName}`;
                         {row.lessonTitle}
                       </td>
                       <td className="p-3 text-slate-700 font-semibold whitespace-nowrap">
-                        SGK {gradeSelect} ({row.sgkPages})
+                        {row.sgkPages}
                       </td>
                       <td className="p-3 text-slate-600 text-xs">
                         <span className="bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
@@ -1132,15 +1243,20 @@ ${detailedPlan.teacherName}`;
                       <td className="p-3 text-center whitespace-nowrap no-print">
                         <button
                           onClick={() => {
-                            setActiveSubView('khbd');
-                            const matchIdx = lessons.findIndex((l) => l.periodNumber === row.period);
-                            if (matchIdx !== -1) {
-                              setSelectedLessonIndex(matchIdx);
+                            setGradeSelect(row.grade);
+                            setClassNameInput(`${row.grade}A1`);
+                            setSgkInput(`${row.sgkPages} • ${row.theme}`);
+                            const pIdx = row.period - 1;
+                            if (pIdx >= 0 && pIdx < lessons.length) {
+                              setSelectedLessonIndex(pIdx);
                             }
+                            setActiveSubView('khbd');
                           }}
-                          className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold px-2.5 py-1 rounded border border-emerald-200 text-xs transition cursor-pointer"
+                          className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition cursor-pointer shadow-xs flex items-center gap-1.5 mx-auto"
+                          title={`Soạn ngay kế hoạch bài dạy cho Tiết ${row.period}: ${row.lessonTitle}`}
                         >
-                          <i className="fa-solid fa-file-pen mr-1"></i> Soạn Giáo Án
+                          <i className="fa-solid fa-file-pen text-amber-300"></i>
+                          <span>Soạn KHBD</span>
                         </button>
                       </td>
                     </tr>
